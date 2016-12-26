@@ -254,13 +254,6 @@ ext_s_polynomial(MRB, VALUE crc)
 }
 
 static VALUE
-ext_s_bitmask(MRB, VALUE crc)
-{
-    struct crcspec *p = get_spec(mrb, crc);
-    return aux_conv_uint64(mrb, ~(~(uint64_t)0 << 1 << (p->basic.bitsize - 1)), p->basic.inttype);
-}
-
-static VALUE
 ext_s_initial_crc(MRB, VALUE crc)
 {
     struct crcspec *p = get_spec(mrb, crc);
@@ -284,12 +277,6 @@ static VALUE
 ext_s_reflect_output(MRB, VALUE crc)
 {
     return get_spec(mrb, crc)->basic.reflect_output ? Qtrue : Qfalse;
-}
-
-static VALUE
-ext_s_table(MRB, VALUE crc)
-{
-    mrb_raise(mrb, E_NOTIMP_ERROR, "not implemented");
 }
 
 static VALUE

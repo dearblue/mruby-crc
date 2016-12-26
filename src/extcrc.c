@@ -160,7 +160,7 @@ spec_free(MRB, void *ptr)
 {
     struct crcspec *p = ptr;
     if (p && p->basic.table) {
-        mrb_free(mrb, p->basic.table);
+        mrb_free(mrb, (void *)p->basic.table);
     }
     mrb_free(mrb, p);
 }

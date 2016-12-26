@@ -72,8 +72,9 @@ static inline VALUE
 aux_conv_uint64(MRB, uint64_t n, int bytesize)
 {
 #ifndef MRB_INT64
-    if (n > MRB_INT_MAX || n > MRB_INT_MIN) {
-        return aux_conv_hexdigest(mrb, n, (bytesize ? bytesize : 8));
+    int64_t m = (int64_t)n << (64 - bytesize * 8) >> (64 - bytesize * 8);
+    if (m > MRB_INT_MAX || m < MRB_INT_MIN) {
+        return aux_conv_hexdigest(mrb, m, bytesize);
     }
 #endif
 

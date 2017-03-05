@@ -1,12 +1,10 @@
 class CRC
-  def CRC.[](*args)
-    if configured?
-      crc = new(*args[1 .. -1])
-      crc << args[0] if args[0]
-      crc
-    else
-      new(*args)
-    end
+  def CRC.[](seq, *args)
+    raise TypeError, "not configured - #{inspect}" unless configured?
+
+    crc = new(*args)
+    crc << seq if seq
+    crc
   end
 
   def CRC.===(crc2)

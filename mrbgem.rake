@@ -1,6 +1,6 @@
 MRuby::Gem::Specification.new("crc") do |s|
   s.summary = "general CRC calcurator"
-  s.version = "0.1"
+  s.version = "0.2"
   s.license = "BSD-2-Clause"
   s.author  = "dearblue"
   s.homepage = "https://github.com/dearblue/mruby-crc"

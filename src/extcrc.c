@@ -342,7 +342,7 @@ ext_s_define(MRB, VALUE self)
 {
     // self が ::CRC であることを確認
 
-    struct RClass *selfklass = mrb_obj_class(mrb, self);
+    struct RClass *selfklass = mrb_class_ptr(self);
     if (selfklass != mrb_class_get(mrb, "CRC")) {
         mrb_raisef(mrb, E_TYPE_ERROR,
                 "wrong call from out of CRC class - %S", self);

@@ -303,6 +303,73 @@ ext_alloc_table(struct crcspec *cc, size_t size)
     return buf;
 }
 
+static struct RData *
+new_crc_module(MRB, VALUE self, int bitsize, VALUE polynomial, VALUE initcrc, VALUE xorout, VALUE algo, mrb_bool refin, mrb_bool refout)
+{
+    struct RData *mod;
+    struct crcspec *p;
+
+    if (bitsize < 1 || bitsize > CRC_MAX_BITSIZE) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong ``bitsize'' (given %d, expected %d..%d)", bitsize, 1, CRC_MAX_BITSIZE);
+    }
+
+    Data_Make_Struct(mrb, mrb->object_class, struct crcspec, &crcspec_type, p, mod);
+
+    p->mrb = mrb;
+    p->object = self;
+    p->basic.inttype = aux_bitsize_to_type(bitsize);
+
+    p->basic.bitsize = bitsize;
+    p->basic.polynomial = aux_to_uint64(mrb, polynomial);
+    p->initial_crc = (NIL_P(initcrc) ? 0 : aux_to_uint64(mrb, initcrc));
+    p->basic.reflect_input = (refin ? 1 : 0);
+    p->basic.reflect_output = (refout ? 1 : 0);
+    p->basic.xor_output = (NIL_P(xorout) ? ~0ull : aux_to_uint64(mrb, xorout));
+
+    p->basic.algorithm = (NIL_P(algo) ? CRC_DEFAULT_ALGORITHM : aux_to_algorithm(mrb, algo));
+    p->basic.table = NULL;
+    p->basic.alloc = (crc_alloc_f *)ext_alloc_table;
+
+    return mod;
+}
+
+/*
+ * call-seq:
+ *  define_crc_module(name, bitsize, polynomial, initial_crc = 0, reflect_input = true, reflect_output = true, xor_output = ~0, algorithm = CRC::STANDARD_TABLE) -> nil
+ */
+static VALUE
+ext_s_define(MRB, VALUE self)
+{
+    // self が ::CRC であることを確認
+
+    struct RClass *selfklass = mrb_obj_class(mrb, self);
+    if (selfklass != mrb_class_get(mrb, "CRC")) {
+        mrb_raisef(mrb, E_TYPE_ERROR,
+                "wrong call from out of CRC class - %S", self);
+    }
+
+    {
+        char *name;
+        mrb_int bitsize;
+        VALUE polynomial, initcrc, xorout, algo;
+        mrb_bool refin, refout;
+        int argc = mrb_get_args(mrb, "zio|obboo", &name, &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
+        if (argc < 4) { initcrc = Qnil; }
+        if (argc < 5) { refin = 1; }
+        if (argc < 6) { refout = 1; }
+        if (argc < 7) { xorout = Qnil; }
+        if (argc < 8) { algo = Qnil; }
+
+        {
+            struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
+            struct RClass *klass = mrb_define_class_under(mrb, selfklass, name, selfklass);
+            mrb_iv_set(mrb, mrb_obj_value(klass), id_crc_spec, mrb_obj_value(mod));
+
+            return Qnil;
+        }
+    }
+}
+
 static VALUE
 ext_s_new_context(MRB, VALUE self)
 {
@@ -325,40 +392,18 @@ ext_s_new_define(MRB, VALUE self)
     VALUE polynomial, initcrc, xorout, algo;
     mrb_bool refin, refout;
     int argc = mrb_get_args(mrb, "io|obboo", &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
-    if (bitsize < 1 || bitsize > CRC_MAX_BITSIZE) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong ``bitsize'' (given %d, expected %d..%d)", bitsize, 1, CRC_MAX_BITSIZE);
-    }
+    if (argc < 3) { initcrc = Qnil; }
+    if (argc < 4) { refin = 1; }
+    if (argc < 5) { refout = 1; }
+    if (argc < 6) { xorout = Qnil; }
+    if (argc < 7) { algo = Qnil; }
 
     {
-        struct RData *mod;
+        struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
+        VALUE crcmod = FUNCALL(mrb, mrb_obj_value(mrb->class_class), "new", self);
+        mrb_iv_set(mrb, crcmod, id_crc_spec, mrb_obj_value(mod));
 
-        {
-            struct crcspec *p;
-
-            Data_Make_Struct(mrb, mrb->object_class, struct crcspec, &crcspec_type, p, mod);
-
-            p->mrb = mrb;
-            p->object = self;
-            p->basic.inttype = aux_bitsize_to_type(bitsize);
-
-            p->basic.bitsize = bitsize;
-            p->basic.polynomial = aux_to_uint64(mrb, polynomial);
-            p->initial_crc = (argc >= 3 && !NIL_P(initcrc) ? aux_to_uint64(mrb, initcrc) : 0);
-            p->basic.reflect_input = (argc >= 4 ? (refin ? 1 : 0) : 1);
-            p->basic.reflect_output = (argc >= 5 ? (refout ? 1 : 0) : 1);
-            p->basic.xor_output = (argc >= 6 && !NIL_P(xorout) ? aux_to_uint64(mrb, xorout) : ~0ull);
-
-            p->basic.algorithm = ((argc >= 7 && !mrb_nil_p(algo)) ? aux_to_algorithm(mrb, algo) : CRC_DEFAULT_ALGORITHM);
-            p->basic.table = NULL;
-            p->basic.alloc = (crc_alloc_f *)ext_alloc_table;
-        }
-
-        {
-            VALUE crcmod = FUNCALL(mrb, mrb_obj_value(mrb->class_class), "new", self);
-            mrb_iv_set(mrb, crcmod, id_crc_spec, mrb_obj_value(mod));
-
-            return crcmod;
-        }
+        return crcmod;
     }
 }
 
@@ -505,6 +550,8 @@ mrb_crc_gem_init(MRB)
     mrb_define_const(mrb, cCRC, "SLICING_BY_4", mrb_symbol_value(id_slicing_by_4));
     mrb_define_const(mrb, cCRC, "SLICING_BY_8", mrb_symbol_value(id_slicing_by_8));
     mrb_define_const(mrb, cCRC, "SLICING_BY_16", mrb_symbol_value(id_slicing_by_16));
+
+    mrb_define_class_method(mrb, cCRC, "define_crc_module", ext_s_define, MRB_ARGS_ANY());
 
     mrb_define_class_method(mrb, cCRC, "new", ext_s_new, MRB_ARGS_ANY());
     mrb_define_class_method(mrb, cCRC, "configured?", ext_s_is_configured, MRB_ARGS_ANY());

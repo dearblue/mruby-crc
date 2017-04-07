@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <limits.h>
 #include "crc.h"
+#include "mrbx_kwargs.h"
 
 #define Qnil mrb_nil_value()
 #define NIL_P(obj) mrb_nil_p(obj)
@@ -392,11 +393,23 @@ ext_s_new_define(MRB, VALUE self)
     VALUE polynomial, initcrc, xorout, algo;
     mrb_bool refin, refout;
     int argc = mrb_get_args(mrb, "io|obboo", &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
-    if (argc < 3) { initcrc = Qnil; }
-    if (argc < 4) { refin = 1; }
-    if (argc < 5) { refout = 1; }
-    if (argc < 6) { xorout = Qnil; }
-    if (argc < 7) { algo = Qnil; }
+    if (argc == 3 && mrb_hash_p(initcrc)) {
+        mrb_value refin_v, refout_v;
+        MRBX_SCANHASH(mrb, initcrc, Qnil,
+                MRBX_SCANHASH_ARGS("initial_crc", &initcrc, Qnil),
+                MRBX_SCANHASH_ARGS("xor_output", &xorout, Qnil),
+                MRBX_SCANHASH_ARGS("reflect_input", &refin_v, Qtrue),
+                MRBX_SCANHASH_ARGS("reflect_output", &refout_v, Qtrue),
+                MRBX_SCANHASH_ARGS("algorithm", &algo, Qnil));
+        refin = mrb_bool(refin_v);
+        refout = mrb_bool(refout_v);
+    } else {
+        if (argc < 3) { initcrc = Qnil; }
+        if (argc < 4) { refin = 1; }
+        if (argc < 5) { refout = 1; }
+        if (argc < 6) { xorout = Qnil; }
+        if (argc < 7) { algo = Qnil; }
+    }
 
     {
         struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
@@ -410,6 +423,7 @@ ext_s_new_define(MRB, VALUE self)
 /*
  * call-seq:
  *  new(bitsize, polynomial, initial_crc = 0, reflect_input = true, reflect_output = true, xor_output = ~0, algorithm = CRC::STANDARD_TABLE) -> crc generator class
+ *  new(bitsize, polynomial, initial_crc: 0, reflect_input: true, reflect_output: true, xor_output: ~0, algorithm: CRC::STANDARD_TABLE) -> crc generator class
  *  new(continuous_crc = 0, total_bytes = 0) -> crc generator instance
  */
 static VALUE

@@ -74,6 +74,28 @@ MRuby::Build.new("host") do |conf|
 end
 ```
 
+## 内部処理の整数値型の固定
+
+
+mruby-crc は CRC のビット長によって内部の整数値型を調整しています。具体的には、``uint8_t`` ``uint16_t`` ``uint32_t`` ``uint64_t`` のためにそれぞれの関数を生成するようになっています。
+
+この mruby-crc 内部で使われる整数値型を固定して僅かでもバイナリサイズを少なくしたい場合、build\_config.rb 内で ``CRC_ONLY_INT***`` を定義します。
+
+定義名は ``CRC_ONLY_INT8`` ``CRC_ONLY_INT16`` ``CRC_ONLY_INT32`` ``CRC_ONLY_INT64`` のみが有効です。
+
+```ruby:build_config.rb
+MRuby::Build.new("host") do |conf|
+  .....
+  conf.cc.defines << "CRC_ONLY_INT32"
+  .....
+end
+```
+
+整数値レジスタが32ビット長であるプロセッサの場合、``CRC_ONLY_INT64`` を定義すると CRC-32 の計算であっても ``uint64_t`` による計算となり、計算速度が数倍遅くなります。
+
+また、``CRC_ONLY_INT8`` を定義した場合、8ビット長を超える CRC の定義は出来なくなります。
+
+
 ## ルックアップテーブルのメモリ確保量
 
 CRC を計算する時に高速化するため、入力バイト値に対する変化を予め求めておくわけですが、この際に専有するメモリの量は algorithm の値によって決定されます。

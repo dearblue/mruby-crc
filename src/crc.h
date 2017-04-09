@@ -44,6 +44,16 @@ enum crc_int_types
 typedef struct crc_t crc_t;
 typedef void *(crc_alloc_f)(crc_t *cc, size_t size);
 
+#if defined(CRC_ONLY_INT32)
+typedef uint32_t crc_int;
+#elif defined(CRC_ONLY_INT16)
+typedef uint16_t crc_int;
+#elif defined(CRC_ONLY_INT8)
+typedef uint8_t crc_int;
+#else /* defined(CRC_ONLY_INT64) */
+typedef uint64_t crc_int;
+#endif
+
 struct crc_t
 {
     int8_t inttype;    /*< enum crc_int_types */
@@ -51,16 +61,16 @@ struct crc_t
     int8_t bitsize;
     uint8_t reflect_input:1;
     uint8_t reflect_output:1;
-    uint64_t polynomial;
-    uint64_t xor_output;
+    crc_int polynomial;
+    crc_int xor_output;
     const void *table;
     crc_alloc_f *alloc;
 
     /** ... user data field ... */
 };
 
-uint64_t crc_setup(crc_t *cc, uint64_t crc);
-uint64_t crc_update(crc_t *cc, const void *src, const void *srcend, uint64_t state);
-uint64_t crc_finish(crc_t *cc, uint64_t state);
+crc_int crc_setup(crc_t *cc, crc_int crc);
+crc_int crc_update(crc_t *cc, const void *src, const void *srcend, crc_int state);
+crc_int crc_finish(crc_t *cc, crc_int state);
 
 #endif /* CRC_H__ */

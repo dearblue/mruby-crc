@@ -355,6 +355,10 @@ ext_s_define(MRB, VALUE self)
         VALUE polynomial, initcrc, xorout, algo;
         mrb_bool refin, refout;
         int argc = mrb_get_args(mrb, "zio|obboo", &name, &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
+        if (bitsize > sizeof(crc_int) * 8) {
+            /* NOTE: 定義できないため、そのまま回れ右 */
+            return Qnil;
+        }
         if (argc < 4) { initcrc = Qnil; }
         if (argc < 5) { refin = 1; }
         if (argc < 6) { refout = 1; }
@@ -393,6 +397,13 @@ ext_s_new_define(MRB, VALUE self)
     VALUE polynomial, initcrc, xorout, algo;
     mrb_bool refin, refout;
     int argc = mrb_get_args(mrb, "io|obboo", &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
+    if (bitsize > sizeof(crc_int) * 8) {
+        /* NOTE: 定義できない */
+        mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                "``bitsize`` too big (given %S, expect 1..%S)",
+                mrb_fixnum_value(bitsize),
+                mrb_fixnum_value(sizeof(crc_int) * 8));
+    }
     if (argc == 3 && mrb_hash_p(initcrc)) {
         mrb_value refin_v, refout_v;
         MRBX_SCANHASH(mrb, initcrc, Qnil,

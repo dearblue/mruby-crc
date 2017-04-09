@@ -187,7 +187,7 @@ getrefp(MRB, VALUE obj, const mrb_data_type *type)
 static inline void *
 getref(MRB, VALUE obj, const mrb_data_type *type)
 {
-    struct crcspec *p = getrefp(mrb, obj, type);
+    void *p = getrefp(mrb, obj, type);
     if (!p) {
         mrb_raisef(mrb, E_TYPE_ERROR, "invalid initialized pointer - %S", obj);
     }

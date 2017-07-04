@@ -4,6 +4,7 @@ MRuby::Build.new("host") do |conf|
   conf.build_dir = "host"
 
   conf.gem core: "mruby-print"
+  conf.gem core: "mruby-bin-mirb"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 
@@ -20,6 +21,7 @@ MRuby::Build.new("host64") do |conf|
   conf.build_dir = "host64"
 
   conf.gem core: "mruby-print"
+  conf.gem core: "mruby-bin-mrbc"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 
@@ -36,6 +38,7 @@ MRuby::Build.new("host16") do |conf|
   conf.build_dir = "host16"
 
   conf.gem core: "mruby-print"
+  conf.gem core: "mruby-bin-mrbc"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 

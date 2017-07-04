@@ -565,7 +565,7 @@ ext_size(MRB, VALUE self)
 }
 
 void
-mrb_crc_gem_init(MRB)
+mrb_mruby_crc_gem_init(MRB)
 {
     struct RClass *cCRC = mrb_define_class(mrb, "CRC", mrb->object_class);
     mrb_define_const(mrb, cCRC, "BITBYBIT", mrb_symbol_value(id_bitbybit));
@@ -611,6 +611,6 @@ mrb_crc_gem_init(MRB)
 }
 
 void
-mrb_crc_gem_final(MRB)
+mrb_mruby_crc_gem_final(MRB)
 {
 }

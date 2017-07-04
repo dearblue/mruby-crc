@@ -22,11 +22,7 @@ assert("CRC::CRC32") do
   assert_equal 0, CRC::CRC32.initial_crc
   assert_true CRC::CRC32.reflect_input?
   assert_true CRC::CRC32.reflect_output?
-  if (1 << 32).kind_of?(Float)
-    assert_equal "ffffffff", CRC::CRC32.xor_output
-  else
-    assert_equal (-1), CRC::CRC32.xor_output
-  end
+  assert_equal (-1), CRC::CRC32.xor_output
 end
 
 assert("CRC::CRC32.hexdigest") do

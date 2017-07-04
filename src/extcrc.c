@@ -51,6 +51,13 @@
 #   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_STANDARD_TABLE
 #endif
 
+static inline void
+aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *entity)
+{
+    struct RClass *singleton = mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(klass)));
+    mrb_define_alias(mrb, singleton, link, entity);
+}
+
 static inline VALUE
 aux_conv_hexdigest(MRB, uint64_t n, int bytesize)
 {
@@ -584,10 +591,14 @@ mrb_mruby_crc_gem_init(MRB)
     mrb_define_class_method(mrb, cCRC, "polynomial", ext_s_polynomial, MRB_ARGS_NONE());
     mrb_define_class_method(mrb, cCRC, "bitsize", ext_s_bitsize, MRB_ARGS_NONE());
     //mrb_define_class_method(mrb, cCRC, "bitmask", ext_s_bitmask, MRB_ARGS_NONE());
-    mrb_define_class_method(mrb, cCRC, "reflect_input?", ext_s_reflect_input, MRB_ARGS_NONE());
-    mrb_define_class_method(mrb, cCRC, "reflect_output?", ext_s_reflect_output, MRB_ARGS_NONE());
-    mrb_define_class_method(mrb, cCRC, "initial_crc", ext_s_initial_crc, MRB_ARGS_NONE());
-    mrb_define_class_method(mrb, cCRC, "xor_output", ext_s_xor_output, MRB_ARGS_NONE());
+    mrb_define_class_method(mrb, cCRC, "reflectin?", ext_s_reflect_input, MRB_ARGS_NONE());
+    aux_define_class_alias(mrb, cCRC, "reflect_input?", "reflectin?");
+    mrb_define_class_method(mrb, cCRC, "reflectout?", ext_s_reflect_output, MRB_ARGS_NONE());
+    aux_define_class_alias(mrb, cCRC, "reflect_output?", "reflectout?");
+    mrb_define_class_method(mrb, cCRC, "initialcrc", ext_s_initial_crc, MRB_ARGS_NONE());
+    aux_define_class_alias(mrb, cCRC, "initial_crc", "initialcrc");
+    mrb_define_class_method(mrb, cCRC, "xoroutput", ext_s_xor_output, MRB_ARGS_NONE());
+    aux_define_class_alias(mrb, cCRC, "xor_output", "xoroutput");
     mrb_define_class_method(mrb, cCRC, "algorithm", ext_s_algorithm, MRB_ARGS_NONE());
     //mrb_define_class_method(mrb, cCRC, "table", ext_s_table, MRB_ARGS_NONE());
 #if 0

@@ -407,10 +407,10 @@ ext_s_new_define(MRB, VALUE self)
     if (argc == 3 && mrb_hash_p(initcrc)) {
         mrb_value refin_v, refout_v;
         MRBX_SCANHASH(mrb, initcrc, Qnil,
-                MRBX_SCANHASH_ARGS("initial_crc", &initcrc, Qnil),
-                MRBX_SCANHASH_ARGS("xor_output", &xorout, Qnil),
-                MRBX_SCANHASH_ARGS("reflect_input", &refin_v, Qtrue),
-                MRBX_SCANHASH_ARGS("reflect_output", &refout_v, Qtrue),
+                MRBX_SCANHASH_ARGS("initialcrc", &initcrc, Qnil),
+                MRBX_SCANHASH_ARGS("xoroutput", &xorout, Qnil),
+                MRBX_SCANHASH_ARGS("reflectin", &refin_v, Qtrue),
+                MRBX_SCANHASH_ARGS("reflectout", &refout_v, Qtrue),
                 MRBX_SCANHASH_ARGS("algorithm", &algo, Qnil));
         refin = mrb_bool(refin_v);
         refout = mrb_bool(refout_v);

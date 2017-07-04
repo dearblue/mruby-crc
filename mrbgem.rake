@@ -1,4 +1,4 @@
-MRuby::Gem::Specification.new("crc") do |s|
+MRuby::Gem::Specification.new("mruby-crc") do |s|
   s.summary = "general CRC calcurator"
   s.version = "0.2"
   s.license = "BSD-2-Clause"

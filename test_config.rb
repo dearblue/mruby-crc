@@ -2,11 +2,8 @@ MRuby::Build.new("host") do |conf|
   toolchain :clang
 
   conf.build_dir = "host"
-  conf.gem_clone_dir = "host/gems"
 
   conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mrbc"
-  conf.gem core: "mruby-bin-mirb"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 
@@ -21,11 +18,8 @@ MRuby::Build.new("host64") do |conf|
   conf.cc.defines = %w(MRB_INT64)
 
   conf.build_dir = "host64"
-  conf.gem_clone_dir = "host64/gems"
 
   conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mrbc"
-  conf.gem core: "mruby-bin-mirb"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 
@@ -40,11 +34,8 @@ MRuby::Build.new("host16") do |conf|
   conf.cc.defines = %w(MRB_INT16)
 
   conf.build_dir = "host16"
-  conf.gem_clone_dir = "host16/gems"
 
   conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mrbc"
-  conf.gem core: "mruby-bin-mirb"
   conf.gem core: "mruby-bin-mruby"
   conf.gem "."
 

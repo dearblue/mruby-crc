@@ -316,7 +316,9 @@ new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, V
     struct crcspec *p;
 
     if (bitsize < 1 || bitsize > CRC_MAX_BITSIZE) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong ``bitsize'' (given %d, expected %d..%d)", bitsize, 1, CRC_MAX_BITSIZE);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                "wrong ``bitsize'' (given %S, expected 1..%S)",
+                mrb_fixnum_value(bitsize), mrb_fixnum_value(CRC_MAX_BITSIZE));
     }
 
     uint64_t polynomial = aux_to_uint64(mrb, apolynomial);

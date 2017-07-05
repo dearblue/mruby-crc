@@ -310,13 +310,18 @@ ext_alloc_table(struct crcspec *cc, size_t size)
 }
 
 static struct RData *
-new_crc_module(MRB, VALUE self, int bitsize, VALUE polynomial, VALUE initcrc, VALUE xorout, VALUE algo, mrb_bool refin, mrb_bool refout)
+new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, VALUE xorout, VALUE algo, mrb_bool refin, mrb_bool refout)
 {
     struct RData *mod;
     struct crcspec *p;
 
     if (bitsize < 1 || bitsize > CRC_MAX_BITSIZE) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong ``bitsize'' (given %d, expected %d..%d)", bitsize, 1, CRC_MAX_BITSIZE);
+    }
+
+    uint64_t polynomial = aux_to_uint64(mrb, apolynomial);
+    if ((polynomial & 1) == 0) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "``polynomial'' must be an odd number (given %S)", apolynomial);
     }
 
     Data_Make_Struct(mrb, mrb->object_class, struct crcspec, &crcspec_type, p, mod);
@@ -326,7 +331,7 @@ new_crc_module(MRB, VALUE self, int bitsize, VALUE polynomial, VALUE initcrc, VA
     p->basic.inttype = aux_bitsize_to_type(bitsize);
 
     p->basic.bitsize = bitsize;
-    p->basic.polynomial = aux_to_uint64(mrb, polynomial);
+    p->basic.polynomial = polynomial;
     p->initial_crc = (NIL_P(initcrc) ? 0 : aux_to_uint64(mrb, initcrc));
     p->basic.reflect_input = (refin ? 1 : 0);
     p->basic.reflect_output = (refout ? 1 : 0);

@@ -62,8 +62,8 @@ static inline VALUE
 aux_conv_hexdigest(MRB, uint64_t n, int bytesize)
 {
     int off = bytesize * 8;
-    VALUE str = mrb_str_buf_new(mrb, bytesize * 2);
-    char *p = RSTRING_PTR(str);
+    char str[bytesize * 2];
+    char *p = str;
     for (; off > 0; off -= 4, p ++) {
         uint8_t ch = (n >> (off - 4)) & 0x0f;
         if (ch < 10) {
@@ -72,8 +72,8 @@ aux_conv_hexdigest(MRB, uint64_t n, int bytesize)
             *p = 'a' - 10 + ch;
         }
     }
-    RSTR_SET_LEN(mrb_str_ptr(str), bytesize * 2);
-    return str;
+
+    return mrb_str_new(mrb, str, bytesize * 2);
 }
 
 static inline VALUE

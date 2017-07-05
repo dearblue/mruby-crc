@@ -50,11 +50,12 @@ p CRC32C.crc("123456789" * 6)
 
 ## 簡易 API 案内
 
-  * CRC.new(bitsize, polynomial, initial\_crc = 0, refin = true, refout = true, xor\_output = ~0, algorithm = CRC::STANDARD\_TABLE) -> CRC generator class
-  * CRC.new(continuous\_crc = 0, input\_length = 0) -> crc generator object
-  * CRC[seq, continuous\_crc = 0, input\_length = 0] -> crc generator object
+  * CRC.new(bitsize, polynomial, initialcrc = 0, refin = true, refout = true, xoroutput = ~0, algorithm = CRC::STANDARD_TABLE) -> CRC generator class
+  * CRC.new(bitsize, polynomial, initialcrc: 0, reflectin: true, reflectout: true, xoroutput: ~0, algorithm: CRC::STANDARD_TABLE) -> CRC generator class
+  * CRC.new(previous_crc = 0, input_length = 0) -> crc generator object
+  * CRC[seq, previous_crc = 0, input_length = 0] -> crc generator object
   * crc.update(seq) -> self
-  * crc.reset(continuous\_crc = 0, input\_length = 0) -> self
+  * crc.reset(previous_crc = 0, input_length = 0) -> self
   * crc.finish -> crc integer
   * crc.digest -> binary digested string (liked as Digest#digest)
   * crc.hexdigest -> hexa-decimal digested string (liked as Digest#hexdigest)
@@ -112,13 +113,12 @@ CRC を計算する時に高速化するため、入力バイト値に対する�
 このテーブルの確保・初期化が行われる時機は、CRC を最初に計算する直前となります。
 CRC.new した段階ではメモリの確保も初期化も行われません。
 
-<table>
-  <tr><th>algorithm           <th>メモリ使用量の求め方 (CRC-32 の場合)  <th>確保されるメモリバイト数 (CRC-32 の場合)
-  <tr><td>CRC::BITBYBIT       <td>(N/A)                                 <td>0 bytes
-  <tr><td>CRC::BITBYBIT_FAST  <td>(N/A)                                 <td>0 bytes
-  <tr><td>CRC::HALFBYTE_TABLE <td>sizeof(uint32_t[16])                  <td>64 bytes
-  <tr><td>CRC::STANDARD_TABLE <td>sizeof(uint32_t[256])                 <td>1024 bytes (1 KiB)
-  <tr><td>CRC::SLICING_BY_4   <td>sizeof(uint32_t[4][256])              <td>4096 bytes (4 KiB)
-  <tr><td>CRC::SLICING_BY_8   <td>sizeof(uint32_t[8][256])              <td>8192 bytes (8 KiB)
-  <tr><td>CRC::SLICING_BY_16  <td>sizeof(uint32_t[16][256])             <td>16384 bytes (16 KiB)
-</table>
+| algorithm           | メモリ使用量の求め方 (CRC-32 の場合) | 確保されるメモリバイト数 (CRC-32 の場合) |
+| ------------------- | ------------------------------------ | ---------------------------------------- |
+| CRC::BITBYBIT       | (N/A)                                | 0 bytes                                  |
+| CRC::BITBYBIT_FAST  | (N/A)                                | 0 bytes                                  |
+| CRC::HALFBYTE_TABLE | sizeof(uint32_t[16])                 | 64 bytes                                 |
+| CRC::STANDARD_TABLE | sizeof(uint32_t[256])                | 1024 bytes (1 KiB)                       |
+| CRC::SLICING_BY_4   | sizeof(uint32_t\[4]\[256])           | 4096 bytes (4 KiB)                       |
+| CRC::SLICING_BY_8   | sizeof(uint32_t\[8]\[256])           | 8192 bytes (8 KiB)                       |
+| CRC::SLICING_BY_16  | sizeof(uint32_t\[16]\[256])          | 16384 bytes (16 KiB)                     |

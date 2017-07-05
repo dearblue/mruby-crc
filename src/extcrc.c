@@ -341,7 +341,7 @@ new_crc_module(MRB, VALUE self, int bitsize, VALUE polynomial, VALUE initcrc, VA
 
 /*
  * call-seq:
- *  define_crc_module(name, bitsize, polynomial, initial_crc = 0, reflect_input = true, reflect_output = true, xor_output = ~0, algorithm = CRC::STANDARD_TABLE) -> nil
+ *  define_crc_module(name, bitsize, polynomial, initialcrc = 0, reflectin = true, reflectout = true, xoroutput = ~0, algorithm = CRC::STANDARD_TABLE) -> nil
  */
 static VALUE
 ext_s_define(MRB, VALUE self)
@@ -438,9 +438,9 @@ ext_s_new_define(MRB, VALUE self)
 
 /*
  * call-seq:
- *  new(bitsize, polynomial, initial_crc = 0, reflect_input = true, reflect_output = true, xor_output = ~0, algorithm = CRC::STANDARD_TABLE) -> crc generator class
- *  new(bitsize, polynomial, initial_crc: 0, reflect_input: true, reflect_output: true, xor_output: ~0, algorithm: CRC::STANDARD_TABLE) -> crc generator class
- *  new(continuous_crc = 0, total_bytes = 0) -> crc generator instance
+ *  new(bitsize, polynomial, initialcrc = 0, reflectin = true, reflectout = true, xoroutput = ~0, algorithm = CRC::STANDARD_TABLE) -> crc generator class
+ *  new(bitsize, polynomial, initialcrc: 0, reflectin: true, reflectout: true, xoroutput: ~0, algorithm: CRC::STANDARD_TABLE) -> crc generator class
+ *  new(crc = 0, total_bytes = 0) -> crc generator instance
  */
 static VALUE
 ext_s_new(MRB, VALUE self)

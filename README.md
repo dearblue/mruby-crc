@@ -1,5 +1,14 @@
 # mruby-crc - A general CRC calcurator for mruby
 
+  * Product name: [mruby-crc](https://github.com/dearblue/mruby-crc)
+  * Version: 0.2
+  * Product quality: PROTOTYPE
+  * Author: [dearblue](https://github.com/dearblue)
+  * Report issue to: <https://github.com/dearblue/mruby-crc/issues>
+  * Licensing: BSD-2-Clause License
+  * Dependency external mrbgems: (NONE)
+  * Bundled C libraries: (NONE)
+
 利用者が定義可能な汎用 CRC 生成器です。
 
 動的に定義可能な項目は次の通りです:

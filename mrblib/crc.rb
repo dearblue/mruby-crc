@@ -143,3 +143,15 @@ class CRC
   define_crc_module("CRC64_WE",           64, "42f0e1eba9ea3693",          0, false, false,   ~0)
   define_crc_module("CRC64_ISO",          64, "000000000000001b",          0, true,  true,     0)
 end
+
+class CRC
+  constants.each do |n|
+    c = const_get(n)
+    next unless c.class == Class && c.superclass == CRC
+    n = n.to_s
+    n.downcase!
+    CRC.define_singleton_method(n, &->(*args) {
+      args.empty? ? c : c.crc(*args)
+    })
+  end
+end

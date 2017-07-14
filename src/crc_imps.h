@@ -530,7 +530,7 @@ CRC_PREPARE_TABLE(crc_t *cc)
         }
 
         if (alloc && algo >= CRC_ALGORITHM_HALFBYTE_TABLE) {
-            void *bufp = cc->alloc(cc, CRC_TABLESIZE(algo));
+            void *bufp = alloc(cc, CRC_TABLESIZE(algo));
             CRC_BUILD_TABLE(cc, bufp);
             cc->table = bufp;
         }

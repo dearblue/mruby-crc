@@ -43,3 +43,29 @@ assert("CRC::CRC32 streaming") do
   assert_kind_of CRC::CRC32, crc32.update("123456789" * 3)
   assert_equal "3e29169c", crc32.hexdigest
 end
+
+assert "wrong crc configure" do
+  bitsize = 8
+  wrong_polynomial = "02"
+
+  # 『polynomial』が偶数のため例外が起こる
+  assert_raise(ArgumentError) { CRC.new(bitsize, wrong_polynomial) }
+end
+
+assert "my crc-41" do
+  bitsize = 41
+  polynomial = "123456789"
+  X = CRC.new(bitsize, polynomial, reflectin: false, reflectout: false, algorithm: CRC::BITBYBIT)
+  assert_equal Class, X.class
+  x = X["123456789"]
+  assert_equal "00000135af9e1c55", x.hexdigest
+end
+
+assert "my crc-64" do
+  bitsize = 64
+  polynomial = "123456789abcdef"
+  Y = CRC.new(bitsize, polynomial, algorithm: CRC::SLICING_BY_16)
+  assert_equal Class, Y.class
+  y = Y["123456789" * 8]
+  assert_equal "7c375941461a2da8", y.hexdigest
+end

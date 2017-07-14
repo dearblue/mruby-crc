@@ -1,5 +1,5 @@
 /**
- * @file crc.c
+ * @file crcea.c
  * @brief 汎用 CRC 生成器
  * @author dearblue <dearblue@users.noreply.github.com>
  * @license Creative Commons License Zero (CC0 / Public Domain)
@@ -13,7 +13,7 @@
  *      Optional.
  */
 
-#include "crc.h"
+#include "../include/crcea.h"
 
 #if !defined(CRC_NO_MALLOC) && !defined(CRC_DEFAULT_MALLOC)
 #   define CRC_DEFAULT_MALLOC crc_default_malloc
@@ -25,7 +25,7 @@ void *CRC_DEFAULT_MALLOC(crc_t *cc, size_t size);
 #if defined(CRC_ONLY_INT32)
 #   define CRC_PREFIX      crc32
 #   define CRC_TYPE        uint32_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_SWITCH_BY_TYPE(C, F)     \
         F(uint32_t, crc32);             \
@@ -33,7 +33,7 @@ void *CRC_DEFAULT_MALLOC(crc_t *cc, size_t size);
 #elif defined(CRC_ONLY_INT16)
 #   define CRC_PREFIX      crc16
 #   define CRC_TYPE        uint16_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_SWITCH_BY_TYPE(C, F)     \
         F(uint16_t, crc16);             \
@@ -41,7 +41,7 @@ void *CRC_DEFAULT_MALLOC(crc_t *cc, size_t size);
 #elif defined(CRC_ONLY_INT8)
 #   define CRC_PREFIX      crc8
 #   define CRC_TYPE        uint8_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_SWITCH_BY_TYPE(C, F)     \
         F(uint8_t, crc8);               \
@@ -49,7 +49,7 @@ void *CRC_DEFAULT_MALLOC(crc_t *cc, size_t size);
 #elif defined(CRC_ONLY_INT64)
 #   define CRC_PREFIX      crc64
 #   define CRC_TYPE        uint64_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_SWITCH_BY_TYPE(C, F)     \
         F(uint64_t, crc64);             \
@@ -57,24 +57,24 @@ void *CRC_DEFAULT_MALLOC(crc_t *cc, size_t size);
 #else
 #   define CRC_PREFIX      crc8
 #   define CRC_TYPE        uint8_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_PREFIX      crc16
 #   define CRC_TYPE        uint16_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_PREFIX      crc32
 #   define CRC_TYPE        uint32_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   define CRC_PREFIX      crc64
 #   define CRC_TYPE        uint64_t
-#   include "crc_imps.h"
+#   include "../include/crcea/core.h"
 
 #   if 0 && HAVE_TYPE_UINT128_T
 #      define CRC_PREFIX  crc128
 #      define CRC_TYPE    uint128_t
-#      include "crc_imps.h"
+#      include "../include/crcea/core.h"
 
 #      define CRC_HAVE_TYPE_UINT128_T_CASE \
        case CRC_TYPE_INT128:               \

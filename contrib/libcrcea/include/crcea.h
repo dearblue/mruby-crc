@@ -1,5 +1,5 @@
 /**
- * @file crc.h
+ * @file crcea.h
  * @brief 汎用 CRC 生成器
  * @author dearblue <dearblue@users.noreply.github.com>
  * @license Creative Commons License Zero (CC0 / Public Domain)

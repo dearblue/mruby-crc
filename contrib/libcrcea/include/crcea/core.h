@@ -121,7 +121,7 @@
 #   error Please definision both CRC_PREFIX and CRC_TYPE macros in before include this file.
 #endif
 
-#include "crc.h"
+#include "../crcea.h"
 
 #ifndef CHAR_BIT
 #   include <limits.h>

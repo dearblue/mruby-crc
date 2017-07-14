@@ -5,7 +5,7 @@
 #include <mruby/data.h>
 #include <stdlib.h>
 #include <limits.h>
-#include "crc.h"
+#include "../contrib/libcrcea/src/crcea.c"
 #include "mrbx_kwargs.h"
 
 #define Qnil mrb_nil_value()

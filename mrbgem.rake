@@ -1,6 +1,6 @@
 MRuby::Gem::Specification.new("mruby-crc") do |s|
   s.summary = "general CRC calcurator"
-  s.version = "0.2"
+  s.version = File.read(File.join(File.dirname(__FILE__), "README.md")).scan(/^\s*[\-\*] version:\s*(\d+(?:\.\d+)+)/i).flatten[-1]
   s.license = "BSD-2-Clause"
   s.author  = "dearblue"
   s.homepage = "https://github.com/dearblue/mruby-crc"

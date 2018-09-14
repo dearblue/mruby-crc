@@ -5,8 +5,14 @@
 #include <mruby/data.h>
 #include <stdlib.h>
 #include <limits.h>
-#include "crc.h"
+#include "../contrib/libcrcea/src/crcea.c"
 #include "mrbx_kwargs.h"
+
+/* check the later mruby-1.4.1 (it's means pre mruby-2.0?) */
+#include <mruby/object.h>
+#ifndef RCLASS_SUPER
+# define RCLASS_SUPER(O)    (mrb_class_ptr(O)->super)
+#endif
 
 #define Qnil mrb_nil_value()
 #define NIL_P(obj) mrb_nil_p(obj)

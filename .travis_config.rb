@@ -59,23 +59,3 @@ MRuby::Build.new("host16") do |conf|
   gem core: "mruby-bin-mrbc"
   gem File.dirname(__FILE__)
 end
-
-if false && MRUBY_RELEASE_NO > 10200
-  MRuby::Build.new("host++") do |conf|
-    toolchain :gcc
-
-    conf.build_dir = conf.name
-
-    #enable_debug
-    enable_test
-    enable_cxx_abi
-
-    cc.flags << "-Wall" << "-std=c++1z"
-    cc.command = "g++-7"
-    cxx.command = "g++-7"
-
-    gem core: "mruby-print"
-    gem core: "mruby-bin-mrbc"
-    gem File.dirname(__FILE__)
-  end
-end

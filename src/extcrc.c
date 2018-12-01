@@ -6,26 +6,8 @@
 #include <stdlib.h>
 #include <limits.h>
 #include "../contrib/libcrcea/src/crcea.c"
-#include "mrbx_kwargs.h"
-
-/* check the later mruby-1.4.1 (it's means pre mruby-2.0?) */
-#include <mruby/object.h>
-#ifndef RCLASS_SUPER
-# define RCLASS_SUPER(O)    (mrb_class_ptr(O)->super)
-#endif
-
-#define Qnil mrb_nil_value()
-#define NIL_P(obj) mrb_nil_p(obj)
-#define Qtrue mrb_true_value()
-#define Qfalse mrb_false_value()
-#define MRB mrb_state *mrb
-#define VALUE mrb_value
-
-#define FUNCALL(mrb, recv, mid, ...) ({                                     \
-        VALUE args__[] = { __VA_ARGS__ };                                   \
-        mrb_funcall_argv((mrb), (recv), mrb_intern_cstr((mrb), (mid)),      \
-                sizeof(args__) / sizeof(args__[0]), args__);                \
-    })                                                                      \
+#include <mruby-aux.h>
+#include <mruby-aux/scanhash.h>
 
 #define id_crc_spec         (mrb_intern_lit(mrb, "crc:CRC@spec"))
 #define id_crc_table        (mrb_intern_lit(mrb, "crc:CRC@table"))

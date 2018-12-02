@@ -5,6 +5,8 @@ MRuby::Gem::Specification.new("mruby-crc") do |s|
   s.author  = "dearblue"
   s.homepage = "https://github.com/dearblue/mruby-crc"
 
+  add_dependency "mruby-aux", github: "dearblue/mruby-aux"
+
   # For Module#constants (Added mruby-2.0-dev feature)
   if File.exist?(File.join(MRUBY_ROOT, "mrbgems", "mruby-metaprog"))
     add_dependency "mruby-metaprog", core: "mruby-metaprog"

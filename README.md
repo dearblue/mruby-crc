@@ -118,7 +118,7 @@ CRC.new した段階ではメモリの確保も初期化も行われません。
 ## Specification
 
   * Product name: mruby-crc
-  * Version: 0.3
+  * Version: 0.3.1
   * Product quality: PROTOTYPE
   * Author: [dearblue](https://github.com/dearblue)
   * Project page: <https://github.com/dearblue/mruby-crc>

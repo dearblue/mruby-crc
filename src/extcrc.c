@@ -154,9 +154,7 @@ static const mrb_data_type context_type = {
 static inline void *
 getrefp(MRB, VALUE obj, const mrb_data_type *type)
 {
-    void *p;
-    Data_Get_Struct(mrb, obj, type, p);
-    return p;
+    return mrb_data_get_ptr(mrb, obj, type);
 }
 
 static inline void *

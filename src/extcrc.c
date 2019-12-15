@@ -47,29 +47,11 @@ aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *
 }
 
 static inline VALUE
-aux_conv_hexdigest(MRB, uint64_t n, int bytesize)
-{
-    int off = bytesize * 8;
-    char str[bytesize * 2];
-    char *p = str;
-    for (; off > 0; off -= 4, p ++) {
-        uint8_t ch = (n >> (off - 4)) & 0x0f;
-        if (ch < 10) {
-            *p = '0' + ch;
-        } else {
-            *p = 'a' - 10 + ch;
-        }
-    }
-
-    return mrb_str_new(mrb, str, bytesize * 2);
-}
-
-static inline VALUE
 aux_conv_uint64(MRB, uint64_t n, int bytesize)
 {
     int64_t m = (int64_t)n << (64 - bytesize * 8) >> (64 - bytesize * 8);
     if (m > MRB_INT_MAX || m < MRB_INT_MIN) {
-        return aux_conv_hexdigest(mrb, m, bytesize);
+        return VALUE(mrbx_str_new_as_hexdigest(mrb, m, bytesize));
     } else {
         return mrb_fixnum_value(n);
     }
@@ -553,8 +535,9 @@ ext_hexdigest(MRB, VALUE self)
 {
     struct context *cc = get_context(mrb, self);
     struct crcspec *s = cc->spec;
-    return aux_conv_hexdigest(mrb,
-            crc_finish(&s->basic, cc->state), s->basic.inttype);
+    return VALUE(mrbx_str_new_as_hexdigest(mrb,
+                                           crc_finish(&s->basic, cc->state),
+                                           s->basic.inttype));
 }
 
 static VALUE

@@ -3,6 +3,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/data.h>
+#include <mruby/proc.h>
 #include <stdlib.h>
 #include <limits.h>
 #include "../contrib/libcrcea/src/crcea.c"
@@ -39,6 +40,21 @@
 #   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_STANDARD_TABLE
 #endif
 
+static void
+aux_define_class_method_with_env(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec, mrb_int nenv, const mrb_value *env)
+{
+    struct RProc *proc = mrb_proc_new_cfunc_with_env(mrb, func, nenv, env);
+    struct RClass *singleton_class = mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c)));
+
+#if MRUBY_RELEASE_NO < 10400
+    mrb_define_method_raw(mrb, singleton_class, mid, proc);
+#else
+    mrb_method_t method;
+    MRB_METHOD_FROM_PROC(method, proc);
+    mrb_define_method_raw(mrb, singleton_class, mid, method);
+#endif
+}
+
 static inline void
 aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *entity)
 {
@@ -47,29 +63,11 @@ aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *
 }
 
 static inline VALUE
-aux_conv_hexdigest(MRB, uint64_t n, int bytesize)
-{
-    int off = bytesize * 8;
-    char str[bytesize * 2];
-    char *p = str;
-    for (; off > 0; off -= 4, p ++) {
-        uint8_t ch = (n >> (off - 4)) & 0x0f;
-        if (ch < 10) {
-            *p = '0' + ch;
-        } else {
-            *p = 'a' - 10 + ch;
-        }
-    }
-
-    return mrb_str_new(mrb, str, bytesize * 2);
-}
-
-static inline VALUE
 aux_conv_uint64(MRB, uint64_t n, int bytesize)
 {
     int64_t m = (int64_t)n << (64 - bytesize * 8) >> (64 - bytesize * 8);
     if (m > MRB_INT_MAX || m < MRB_INT_MIN) {
-        return aux_conv_hexdigest(mrb, m, bytesize);
+        return VALUE(mrbx_str_new_as_hexdigest(mrb, m, bytesize));
     } else {
         return mrb_fixnum_value(n);
     }
@@ -172,9 +170,7 @@ static const mrb_data_type context_type = {
 static inline void *
 getrefp(MRB, VALUE obj, const mrb_data_type *type)
 {
-    void *p;
-    Data_Get_Struct(mrb, obj, type, p);
-    return p;
+    return mrb_data_get_ptr(mrb, obj, type);
 }
 
 static inline void *
@@ -334,6 +330,29 @@ new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, V
     return mod;
 }
 
+static mrb_value
+redirect_crc(MRB, VALUE self)
+{
+    VALUE model = mrb_proc_cfunc_env_get(mrb, 0);
+    mrb_int argc;
+    VALUE *argv, block;
+
+    if (mrb_get_args(mrb, "*&", &argv, &argc, &block) == 0) {
+        return model;
+    } else {
+        return mrb_funcall_with_block(mrb, model, SYMBOL("crc"), argc, argv, block);
+    }
+}
+
+static void
+attach_method(MRB, struct RClass *crc, VALUE model, const char *name)
+{
+    VALUE namev = mrb_str_new_cstr(mrb, name);
+    FUNCALL(mrb, namev, "downcase!");
+
+    aux_define_class_method_with_env(mrb, crc, mrb_obj_to_sym(mrb, namev), redirect_crc, MRB_ARGS_ANY(), 1, &model);
+}
+
 /*
  * call-seq:
  *  define_crc_module(name, bitsize, polynomial, initialcrc = 0, reflectin = true, reflectout = true, xoroutput = ~0, algorithm = CRC::STANDARD_TABLE) -> nil
@@ -369,6 +388,8 @@ ext_s_define(MRB, VALUE self)
             struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
             struct RClass *klass = mrb_define_class_under(mrb, selfklass, name, selfklass);
             mrb_iv_set(mrb, mrb_obj_value(klass), id_crc_spec, mrb_obj_value(mod));
+
+            attach_method(mrb, mrb_class_ptr(self), VALUE(klass), name);
 
             return Qnil;
         }
@@ -553,8 +574,9 @@ ext_hexdigest(MRB, VALUE self)
 {
     struct context *cc = get_context(mrb, self);
     struct crcspec *s = cc->spec;
-    return aux_conv_hexdigest(mrb,
-            crc_finish(&s->basic, cc->state), s->basic.inttype);
+    return VALUE(mrbx_str_new_as_hexdigest(mrb,
+                                           crc_finish(&s->basic, cc->state),
+                                           s->basic.inttype));
 }
 
 static VALUE

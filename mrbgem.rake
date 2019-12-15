@@ -7,11 +7,6 @@ MRuby::Gem::Specification.new("mruby-crc") do |s|
 
   add_dependency "mruby-aux", github: "dearblue/mruby-aux"
 
-  # For Module#constants (Added mruby-2.0-dev feature)
-  if File.exist?(File.join(MRUBY_ROOT, "mrbgems", "mruby-metaprog"))
-    add_dependency "mruby-metaprog", core: "mruby-metaprog"
-  end
-
   if s.cc.command =~ /\b(?:g?cc|clang)\d*\b/
     s.cc.flags << "-Wno-shift-negative-value" <<
                   "-Wno-shift-count-negative" <<

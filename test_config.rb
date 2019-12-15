@@ -1,48 +1,25 @@
-MRuby::Build.new("host") do |conf|
-  toolchain :clang
+%w(32 16 64).each do |intsize|
+  name = %(host#{intsize == "32" ? "" : intsize})
 
-  conf.build_dir = "host"
+  MRuby::Build.new(name) do |conf|
+    toolchain :clang
 
-  conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mirb"
-  conf.gem core: "mruby-bin-mruby"
-  conf.gem "."
+    conf.build_dir = name
 
-  conf.cc.flags << "-O0"
+    enable_debug
+    enable_test
 
-  conf.enable_test
-end
+    cc.defines = %W(MRB_INT#{intsize})
 
-MRuby::Build.new("host64") do |conf|
-  toolchain :clang
-
-  conf.cc.defines = %w(MRB_INT64)
-
-  conf.build_dir = "host64"
-
-  conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mrbc"
-  conf.gem core: "mruby-bin-mruby"
-  conf.gem "."
-
-  conf.cc.flags << "-O0"
-
-  conf.enable_test
-end
-
-MRuby::Build.new("host16") do |conf|
-  toolchain :clang
-
-  conf.cc.defines = %w(MRB_INT16)
-
-  conf.build_dir = "host16"
-
-  conf.gem core: "mruby-print"
-  conf.gem core: "mruby-bin-mrbc"
-  conf.gem core: "mruby-bin-mruby"
-  conf.gem "."
-
-  conf.cc.flags << "-O0"
-
-  conf.enable_test
+    gem core: "mruby-print"
+    gem core: "mruby-bin-mirb"
+    gem core: "mruby-bin-mrbc"
+    gem core: "mruby-bin-mruby"
+    gem __dir__ do
+      cc.flags << %w(-std=c11 -Wall -pedantic
+                     -Wno-gnu-empty-initializer
+                     -Wno-zero-length-array
+                     -Wno-gnu-zero-variadic-macro-arguments)
+    end
+  end
 end

@@ -13,13 +13,13 @@ class CRC
        reflect_input? == crc2.reflect_input? &&
        reflect_output? == crc2.reflect_output? &&
        append_zero? == crc2.append_zero? &&
-       xor_external == crc2.xor_external
+       xor_output == crc2.xor_output
       true
     else
-      false
+      super crc2
     end
   rescue # e.g. no method error
-    nil
+    super crc2
   end
 
   def CRC.digest(seq, prev_crc = nil)

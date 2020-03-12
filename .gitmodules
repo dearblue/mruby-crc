@@ -1,0 +1,3 @@
+[submodule "contrib/libcrcea"]
+	path = contrib/libcrcea
+	url = https://github.com/dearblue/libcrcea.git

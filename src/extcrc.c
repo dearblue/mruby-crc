@@ -6,6 +6,7 @@
 #include <mruby/proc.h>
 #include <stdlib.h>
 #include <limits.h>
+#define CRCEA_DEFAULT
 #include "../contrib/libcrcea/src/crcea.c"
 #include <mruby-aux.h>
 #include <mruby-aux/scanhash.h>
@@ -14,31 +15,6 @@
 #define id_crc_table        (mrb_intern_lit(mrb, "crc:CRC@table"))
 #define id_update           (mrb_intern_lit(mrb, "update"))
 #define id_initialize       (mrb_intern_lit(mrb, "initialize"))
-#define id_bitbybit         (mrb_intern_lit(mrb, "bitbybit"))
-#define id_bitbybit_fast    (mrb_intern_lit(mrb, "bitbybit_fast"))
-#define id_halfbyte_table   (mrb_intern_lit(mrb, "halfbyte_table"))
-#define id_standard_table   (mrb_intern_lit(mrb, "standard_table"))
-#define id_slicing_by_4     (mrb_intern_lit(mrb, "slicing_by_4"))
-#define id_slicing_by_8     (mrb_intern_lit(mrb, "slicing_by_8"))
-#define id_slicing_by_16    (mrb_intern_lit(mrb, "slicing_by_16"))
-
-#if     defined(CRC_DEFAULT_BITBYBIT)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_BITBYBIT
-#elif   defined(CRC_DEFAULT_BITBYBIT_FAST)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_BITBYBIT_FAST
-#elif   defined(CRC_DEFAULT_HALFBYTE_TABLE)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_HALFBYTE_TABLE
-#elif   defined(CRC_DEFAULT_STANDARD_TABLE)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_STANDARD_TABLE
-#elif   defined(CRC_DEFAULT_SLICING_BY_4)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_SLICING_BY_4
-#elif   defined(CRC_DEFAULT_SLICING_BY_8)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_SLICING_BY_8
-#elif   defined(CRC_DEFAULT_SLICING_BY_16)
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_SLICING_BY_16
-#else
-#   define CRC_DEFAULT_ALGORITHM CRC_ALGORITHM_STANDARD_TABLE
-#endif
 
 static void
 aux_define_class_method_with_env(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec, mrb_int nenv, const mrb_value *env)
@@ -62,9 +38,24 @@ aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *
     mrb_define_alias(mrb, singleton, link, entity);
 }
 
-static inline VALUE
-aux_conv_uint64(MRB, uint64_t n, int bytesize)
+static inline int
+bits_to_bytes(int bits)
 {
+    if (bits > 32) {
+        return 8;
+    } else if (bits > 16) {
+        return 4;
+    } else if (bits > 8) {
+        return 2;
+    } else {
+        return 1;
+    }
+}
+
+static inline VALUE
+aux_conv_uint64(MRB, uint64_t n, int bits)
+{
+    int bytesize = bits_to_bytes(bits);
     int64_t m = (int64_t)n << (64 - bytesize * 8) >> (64 - bytesize * 8);
     if (m > MRB_INT_MAX || m < MRB_INT_MIN) {
         return VALUE(mrbx_str_new_as_hexdigest(mrb, m, bytesize));
@@ -85,48 +76,6 @@ aux_to_uint64(MRB, VALUE n)
     }
 }
 
-static inline int
-aux_to_algorithm(MRB, VALUE algo)
-{
-    if (NIL_P(algo)) {
-        return CRC_ALGORITHM_STANDARD_TABLE;
-    } else if (mrb_symbol_p(algo)) {
-        mrb_sym id = mrb_symbol(algo);
-
-        if (id == id_standard_table) {
-            return CRC_ALGORITHM_STANDARD_TABLE;
-        } else if (id == id_slicing_by_4) {
-            return CRC_ALGORITHM_SLICING_BY_4;
-        } else if (id == id_slicing_by_8) {
-            return CRC_ALGORITHM_SLICING_BY_8;
-        } else if (id == id_slicing_by_16) {
-            return CRC_ALGORITHM_SLICING_BY_16;
-        } else if (id == id_halfbyte_table) {
-            return CRC_ALGORITHM_HALFBYTE_TABLE;
-        } else if (id == id_bitbybit_fast) {
-            return CRC_ALGORITHM_BITBYBIT_FAST;
-        } else if (id == id_bitbybit) {
-            return CRC_ALGORITHM_BITBYBIT;
-        }
-    }
-
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong algorithm (%S)", algo);
-}
-
-static inline int
-aux_bitsize_to_type(int bitsize)
-{
-    if (bitsize > 32) {
-        return CRC_TYPE_INT64;
-    } else if (bitsize > 16) {
-        return CRC_TYPE_INT32;
-    } else if (bitsize > 8) {
-        return CRC_TYPE_INT16;
-    } else {
-        return CRC_TYPE_INT8;
-    }
-}
-
 
 enum {
     CRC_MAX_BITSIZE = 64,
@@ -134,8 +83,8 @@ enum {
 
 struct crcspec
 {
-    crc_t basic;
-    uint64_t initial_crc;
+    crcea_model model;
+    crcea_context context;
     mrb_state *mrb;
     VALUE object;
 };
@@ -151,8 +100,8 @@ static void
 spec_free(MRB, void *ptr)
 {
     struct crcspec *p = ptr;
-    if (p && p->basic.table) {
-        mrb_free(mrb, (void *)p->basic.table);
+    if (p && p->context.table) {
+        mrb_free(mrb, (void *)p->context.table);
     }
     mrb_free(mrb, p);
 }
@@ -233,55 +182,46 @@ get_context(MRB, VALUE obj)
 static VALUE
 ext_s_bitsize(MRB, VALUE crc)
 {
-    return mrb_fixnum_value(get_spec(mrb, crc)->basic.bitsize);
+    return mrb_fixnum_value(get_spec(mrb, crc)->model.design.bitsize);
 }
 
 static VALUE
 ext_s_polynomial(MRB, VALUE crc)
 {
     struct crcspec *p = get_spec(mrb, crc);
-    return aux_conv_uint64(mrb, p->basic.polynomial, p->basic.inttype);
+    return aux_conv_uint64(mrb, p->model.design.polynomial, p->model.design.bitsize);
 }
 
 static VALUE
 ext_s_initial_crc(MRB, VALUE crc)
 {
     struct crcspec *p = get_spec(mrb, crc);
-    return aux_conv_uint64(mrb, p->initial_crc, p->basic.inttype);
+    return aux_conv_uint64(mrb, p->model.initialcrc, p->model.design.bitsize);
 }
 
 static VALUE
 ext_s_xor_output(MRB, VALUE crc)
 {
     struct crcspec *p = get_spec(mrb, crc);
-    return aux_conv_uint64(mrb, p->basic.xor_output, p->basic.inttype);
+    return aux_conv_uint64(mrb, p->model.design.xoroutput, p->model.design.bitsize);
 }
 
 static VALUE
 ext_s_reflect_input(MRB, VALUE crc)
 {
-    return get_spec(mrb, crc)->basic.reflect_input ? Qtrue : Qfalse;
+    return get_spec(mrb, crc)->model.design.reflectin ? Qtrue : Qfalse;
 }
 
 static VALUE
 ext_s_reflect_output(MRB, VALUE crc)
 {
-    return get_spec(mrb, crc)->basic.reflect_output ? Qtrue : Qfalse;
+    return get_spec(mrb, crc)->model.design.reflectout ? Qtrue : Qfalse;
 }
 
 static VALUE
-ext_s_algorithm(MRB, VALUE crc)
+ext_s_append_zero(MRB, VALUE crc)
 {
-    switch (get_spec(mrb, crc)->basic.algorithm) {
-    case CRC_ALGORITHM_BITBYBIT:        return mrb_symbol_value(id_bitbybit);
-    case CRC_ALGORITHM_BITBYBIT_FAST:   return mrb_symbol_value(id_bitbybit_fast);
-    case CRC_ALGORITHM_HALFBYTE_TABLE:  return mrb_symbol_value(id_halfbyte_table);
-    case CRC_ALGORITHM_STANDARD_TABLE:  return mrb_symbol_value(id_standard_table);
-    case CRC_ALGORITHM_SLICING_BY_4:    return mrb_symbol_value(id_slicing_by_4);
-    case CRC_ALGORITHM_SLICING_BY_8:    return mrb_symbol_value(id_slicing_by_8);
-    case CRC_ALGORITHM_SLICING_BY_16:   return mrb_symbol_value(id_slicing_by_16);
-    default: mrb_bug(mrb, "unknown algorithm (%d)", get_spec(mrb, crc)->basic.algorithm);
-    }
+    return get_spec(mrb, crc)->model.design.appendzero ? Qtrue : Qfalse;
 }
 
 static void *
@@ -289,12 +229,12 @@ ext_alloc_table(struct crcspec *cc, size_t size)
 {
     MRB = cc->mrb;
     void *buf = mrb_malloc(mrb, size);
-    cc->basic.table = buf;
+    cc->context.table = buf;
     return buf;
 }
 
 static struct RData *
-new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, VALUE xorout, VALUE algo, mrb_bool refin, mrb_bool refout)
+new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, VALUE xorout, mrb_bool refin, mrb_bool refout, mrb_bool appendzero)
 {
     struct RData *mod;
     struct crcspec *p;
@@ -314,18 +254,20 @@ new_crc_module(MRB, VALUE self, int bitsize, VALUE apolynomial, VALUE initcrc, V
 
     p->mrb = mrb;
     p->object = self;
-    p->basic.inttype = aux_bitsize_to_type(bitsize);
 
-    p->basic.bitsize = bitsize;
-    p->basic.polynomial = polynomial;
-    p->initial_crc = (NIL_P(initcrc) ? 0 : aux_to_uint64(mrb, initcrc));
-    p->basic.reflect_input = (refin ? 1 : 0);
-    p->basic.reflect_output = (refout ? 1 : 0);
-    p->basic.xor_output = (NIL_P(xorout) ? ~0ull : aux_to_uint64(mrb, xorout));
+    p->model.design.bitsize = bitsize;
+    p->model.design.polynomial = polynomial;
+    p->model.initialcrc = (NIL_P(initcrc) ? 0 : aux_to_uint64(mrb, initcrc));
+    p->model.design.reflectin = (refin ? 1 : 0);
+    p->model.design.reflectout = (refout ? 1 : 0);
+    p->model.design.appendzero = (appendzero ? 1 : 0);
+    p->model.design.xoroutput = (NIL_P(xorout) ? ~0ull : aux_to_uint64(mrb, xorout));
 
-    p->basic.algorithm = (NIL_P(algo) ? CRC_DEFAULT_ALGORITHM : aux_to_algorithm(mrb, algo));
-    p->basic.table = NULL;
-    p->basic.alloc = (crc_alloc_f *)ext_alloc_table;
+    p->context.design = &p->model.design;
+    p->context.algorithm = CRCEA_DEFAULT_ALGORITHM;
+    p->context.table = NULL;
+    p->context.alloc = (crcea_alloc_f *)ext_alloc_table;
+    p->context.opaque = p;
 
     return mod;
 }
@@ -355,7 +297,7 @@ attach_method(MRB, struct RClass *crc, VALUE model, const char *name)
 
 /*
  * call-seq:
- *  define_crc_module(name, bitsize, polynomial, initialcrc = 0, reflectin = true, reflectout = true, xoroutput = ~0, algorithm = CRC::STANDARD_TABLE) -> nil
+ *  define_crc_module(name, bitsize, polynomial, initialcrc = 0, reflectin = true, reflectout = true, xoroutput = ~0) -> nil
  */
 static VALUE
 ext_s_define(MRB, VALUE self)
@@ -371,10 +313,10 @@ ext_s_define(MRB, VALUE self)
     {
         char *name;
         mrb_int bitsize;
-        VALUE polynomial, initcrc, xorout, algo;
-        mrb_bool refin, refout;
-        int argc = mrb_get_args(mrb, "zio|obboo", &name, &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
-        if (bitsize > sizeof(crc_int) * 8) {
+        VALUE polynomial, initcrc, xorout;
+        mrb_bool refin, refout, appendzero;
+        int argc = mrb_get_args(mrb, "zio|obbob", &name, &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &appendzero);
+        if (bitsize > sizeof(crcea_int) * 8) {
             /* NOTE: 定義できないため、そのまま回れ右 */
             return Qnil;
         }
@@ -382,10 +324,10 @@ ext_s_define(MRB, VALUE self)
         if (argc < 5) { refin = 1; }
         if (argc < 6) { refout = 1; }
         if (argc < 7) { xorout = Qnil; }
-        if (argc < 8) { algo = Qnil; }
+        if (argc < 8) { appendzero = 1; }
 
         {
-            struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
+            struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, refin, refout, appendzero);
             struct RClass *klass = mrb_define_class_under(mrb, selfklass, name, selfklass);
             mrb_iv_set(mrb, mrb_obj_value(klass), id_crc_spec, mrb_obj_value(mod));
 
@@ -415,36 +357,37 @@ static VALUE
 ext_s_new_define(MRB, VALUE self)
 {
     mrb_int bitsize;
-    VALUE polynomial, initcrc, xorout, algo;
-    mrb_bool refin, refout;
-    int argc = mrb_get_args(mrb, "io|obboo", &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &algo);
-    if (bitsize > sizeof(crc_int) * 8) {
+    VALUE polynomial, initcrc, xorout;
+    mrb_bool refin, refout, appendzero;
+    int argc = mrb_get_args(mrb, "io|obbob", &bitsize, &polynomial, &initcrc, &refin, &refout, &xorout, &appendzero);
+    if (bitsize > sizeof(crcea_int) * 8) {
         /* NOTE: 定義できない */
         mrb_raisef(mrb, E_ARGUMENT_ERROR,
                 "``bitsize`` too big (given %S, expect 1..%S)",
                 mrb_fixnum_value(bitsize),
-                mrb_fixnum_value(sizeof(crc_int) * 8));
+                mrb_fixnum_value(sizeof(crcea_int) * 8));
     }
     if (argc == 3 && mrb_hash_p(initcrc)) {
-        mrb_value refin_v, refout_v;
+        mrb_value refin_v, refout_v, appendzero_v;
         MRBX_SCANHASH(mrb, initcrc, Qnil,
                 MRBX_SCANHASH_ARGS("initialcrc", &initcrc, Qnil),
                 MRBX_SCANHASH_ARGS("xoroutput", &xorout, Qnil),
                 MRBX_SCANHASH_ARGS("reflectin", &refin_v, Qtrue),
                 MRBX_SCANHASH_ARGS("reflectout", &refout_v, Qtrue),
-                MRBX_SCANHASH_ARGS("algorithm", &algo, Qnil));
+                MRBX_SCANHASH_ARGS("appendzero", &appendzero_v, Qtrue));
         refin = mrb_bool(refin_v);
         refout = mrb_bool(refout_v);
+        appendzero = mrb_bool(appendzero_v);
     } else {
         if (argc < 3) { initcrc = Qnil; }
         if (argc < 4) { refin = 1; }
         if (argc < 5) { refout = 1; }
         if (argc < 6) { xorout = Qnil; }
-        if (argc < 7) { algo = Qnil; }
+        if (argc < 7) { appendzero = 1; }
     }
 
     {
-        struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, algo, refin, refout);
+        struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, refin, refout, appendzero);
         VALUE crcmod = FUNCALL(mrb, mrb_obj_value(mrb->class_class), "new", self);
         mrb_iv_set(mrb, crcmod, id_crc_spec, mrb_obj_value(mod));
 
@@ -505,9 +448,9 @@ ext_initialize(MRB, VALUE self)
 
     cc->total_input = (NIL_P(totalin) ? 0 : aux_to_uint64(mrb, totalin));
     if (NIL_P(initcrc)) {
-        cc->state = crc_setup(&s->basic, s->initial_crc);
+        cc->state = crcea_setup(&s->context, s->model.initialcrc);
     } else {
-        cc->state = crc_setup(&s->basic, aux_to_uint64(mrb, initcrc));
+        cc->state = crcea_setup(&s->context, aux_to_uint64(mrb, initcrc));
     }
 
     return self;
@@ -525,7 +468,7 @@ ext_update(MRB, VALUE self)
     mrb_int len;
     mrb_get_args(mrb, "s", &p, &len);
 
-    cc->state = crc_update(&cc->spec->basic, p, p + len, cc->state);
+    cc->state = crcea_update(&cc->spec->context, p, p + len, cc->state);
     cc->total_input += len;
 
     return self;
@@ -539,9 +482,9 @@ ext_reset(MRB, VALUE self)
     mrb_get_args(mrb, "|oo", &initcrc, &totalin);
     cc->total_input = (NIL_P(totalin) ? 0 : aux_to_uint64(mrb, totalin));
     if (NIL_P(initcrc)) {
-        cc->state = crc_setup(&cc->spec->basic, cc->spec->initial_crc);
+        cc->state = crcea_setup(&cc->spec->context, cc->spec->model.initialcrc);
     } else {
-        cc->state = crc_setup(&cc->spec->basic, aux_to_uint64(mrb, initcrc));
+        cc->state = crcea_setup(&cc->spec->context, aux_to_uint64(mrb, initcrc));
     }
     return self;
 }
@@ -550,7 +493,7 @@ static VALUE
 ext_finish(MRB, VALUE self)
 {
     struct context *cc = get_context(mrb, self);
-    return aux_conv_uint64(mrb, crc_finish(&cc->spec->basic, cc->state), cc->spec->basic.inttype);
+    return aux_conv_uint64(mrb, crcea_finish(&cc->spec->context, cc->state), cc->spec->model.design.bitsize);
 }
 
 static VALUE
@@ -558,14 +501,15 @@ ext_digest(MRB, VALUE self)
 {
     struct context *cc = get_context(mrb, self);
     struct crcspec *s = cc->spec;
-    int off = s->basic.inttype * 8;
-    VALUE str = mrb_str_buf_new(mrb, s->basic.inttype);
+    int bytes = bits_to_bytes(s->model.design.bitsize);
+    int off = bytes;
+    VALUE str = mrb_str_buf_new(mrb, bytes);
     char *p = RSTRING_PTR(str);
-    uint64_t n = crc_finish(&s->basic, cc->state);
+    uint64_t n = crcea_finish(&s->context, cc->state);
     for (; off > 0; off -= 8, p ++) {
         *p = (n >> (off - 8)) & 0xff;
     }
-    RSTR_SET_LEN(mrb_str_ptr(str), s->basic.inttype);
+    RSTR_SET_LEN(mrb_str_ptr(str), bytes);
     return str;
 }
 
@@ -575,8 +519,8 @@ ext_hexdigest(MRB, VALUE self)
     struct context *cc = get_context(mrb, self);
     struct crcspec *s = cc->spec;
     return VALUE(mrbx_str_new_as_hexdigest(mrb,
-                                           crc_finish(&s->basic, cc->state),
-                                           s->basic.inttype));
+                                           crcea_finish(&s->context, cc->state),
+                                           bits_to_bytes(s->model.design.bitsize)));
 }
 
 static VALUE
@@ -590,13 +534,6 @@ void
 mrb_mruby_crc_gem_init(MRB)
 {
     struct RClass *cCRC = mrb_define_class(mrb, "CRC", mrb->object_class);
-    mrb_define_const(mrb, cCRC, "BITBYBIT", mrb_symbol_value(id_bitbybit));
-    mrb_define_const(mrb, cCRC, "BITBYBIT_FAST", mrb_symbol_value(id_bitbybit_fast));
-    mrb_define_const(mrb, cCRC, "HALFBYTE_TABLE", mrb_symbol_value(id_halfbyte_table));
-    mrb_define_const(mrb, cCRC, "STANDARD_TABLE", mrb_symbol_value(id_standard_table));
-    mrb_define_const(mrb, cCRC, "SLICING_BY_4", mrb_symbol_value(id_slicing_by_4));
-    mrb_define_const(mrb, cCRC, "SLICING_BY_8", mrb_symbol_value(id_slicing_by_8));
-    mrb_define_const(mrb, cCRC, "SLICING_BY_16", mrb_symbol_value(id_slicing_by_16));
 
     mrb_define_class_method(mrb, cCRC, "define_crc_module", ext_s_define, MRB_ARGS_ANY());
 
@@ -610,11 +547,12 @@ mrb_mruby_crc_gem_init(MRB)
     aux_define_class_alias(mrb, cCRC, "reflect_input?", "reflectin?");
     mrb_define_class_method(mrb, cCRC, "reflectout?", ext_s_reflect_output, MRB_ARGS_NONE());
     aux_define_class_alias(mrb, cCRC, "reflect_output?", "reflectout?");
+    mrb_define_class_method(mrb, cCRC, "appendzero?", ext_s_append_zero, MRB_ARGS_NONE());
+    aux_define_class_alias(mrb, cCRC, "append_zero?", "appendzero?");
     mrb_define_class_method(mrb, cCRC, "initialcrc", ext_s_initial_crc, MRB_ARGS_NONE());
     aux_define_class_alias(mrb, cCRC, "initial_crc", "initialcrc");
     mrb_define_class_method(mrb, cCRC, "xoroutput", ext_s_xor_output, MRB_ARGS_NONE());
     aux_define_class_alias(mrb, cCRC, "xor_output", "xoroutput");
-    mrb_define_class_method(mrb, cCRC, "algorithm", ext_s_algorithm, MRB_ARGS_NONE());
     //mrb_define_class_method(mrb, cCRC, "table", ext_s_table, MRB_ARGS_NONE());
 #if 0
     mrb_define_class_method(mrb, cCRC, "combine", ext_s_combine, MRB_ARGS_REQ(3));

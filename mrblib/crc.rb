@@ -12,6 +12,7 @@ class CRC
        polynomial == crc2.polynomial &&
        reflect_input? == crc2.reflect_input? &&
        reflect_output? == crc2.reflect_output? &&
+       append_zero? == crc2.append_zero? &&
        xor_external == crc2.xor_external
       true
     else

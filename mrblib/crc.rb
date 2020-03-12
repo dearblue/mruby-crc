@@ -118,6 +118,7 @@ class CRC
   define_crc_module("CRC16_MODBUS",       16,             "8005",         ~0, true,  true,     0)
   define_crc_module("CRC16_X_25",         16,             "1021",          0, true,  true,    ~0)
   define_crc_module("CRC16_XMODEM",       16,             "1021",          0, false, false,    0)
+  define_crc_module("CRC16_MRUBY",        16,             "1021",          0, false, false,    0, false)
   define_crc_module("CRC24_Radix_64",     24,         "00864cfb",          0, false, false,    0)
   define_crc_module("CRC24_OPENPGP",      24,         "00864cfb", "00b704ce", false, false,    0)
   define_crc_module("CRC24_BLE",          24,         "0000065b", "00555555", true,  true,     0)

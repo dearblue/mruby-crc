@@ -31,14 +31,14 @@ aux_define_class_method_with_env(mrb_state *mrb, struct RClass *c, mrb_sym mid, 
 #endif
 }
 
-static inline void
+static void
 aux_define_class_alias(MRB, struct RClass *klass, const char *link, const char *entity)
 {
     struct RClass *singleton = mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(klass)));
     mrb_define_alias(mrb, singleton, link, entity);
 }
 
-static inline int
+static int
 bits_to_bytes(int bits)
 {
     if (bits > 32) {
@@ -52,7 +52,7 @@ bits_to_bytes(int bits)
     }
 }
 
-static inline VALUE
+static VALUE
 aux_conv_uint64(MRB, uint64_t n, int bits)
 {
     int bytesize = bits_to_bytes(bits);
@@ -64,7 +64,7 @@ aux_conv_uint64(MRB, uint64_t n, int bits)
     }
 }
 
-static inline uint64_t
+static uint64_t
 aux_to_uint64(MRB, VALUE n)
 {
     if (mrb_float_p(n)) {
@@ -116,13 +116,13 @@ static const mrb_data_type context_type = {
     .dfree = mrb_free,
 };
 
-static inline void *
+static void *
 getrefp(MRB, VALUE obj, const mrb_data_type *type)
 {
     return mrb_data_get_ptr(mrb, obj, type);
 }
 
-static inline void *
+static void *
 getref(MRB, VALUE obj, const mrb_data_type *type)
 {
     void *p = getrefp(mrb, obj, type);
@@ -149,7 +149,7 @@ search_ivar(MRB, VALUE obj, mrb_sym id)
     } 
 }
 
-static inline struct crcspec *
+static struct crcspec *
 get_specp(MRB, VALUE obj)
 {
     VALUE mod = search_ivar(mrb, obj, id_crc_spec);
@@ -157,7 +157,7 @@ get_specp(MRB, VALUE obj)
     return getrefp(mrb, mod, &crcspec_type);
 }
 
-static inline struct crcspec *
+static struct crcspec *
 get_spec(MRB, VALUE obj)
 {
     VALUE mod = search_ivar(mrb, obj, id_crc_spec);
@@ -167,13 +167,13 @@ get_spec(MRB, VALUE obj)
     return getref(mrb, mod, &crcspec_type);
 }
 
-static inline struct context *
+static struct context *
 get_contextp(MRB, VALUE obj)
 {
     return getrefp(mrb, obj, &context_type);
 }
 
-static inline struct context *
+static struct context *
 get_context(MRB, VALUE obj)
 {
     return getref(mrb, obj, &context_type);

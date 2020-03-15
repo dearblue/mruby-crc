@@ -468,6 +468,7 @@ ext_update(MRB, VALUE self)
     mrb_int len;
     mrb_get_args(mrb, "s", &p, &len);
 
+    crcea_prepare_table(&cc->spec->context);
     cc->state = crcea_update(&cc->spec->context, p, p + len, cc->state);
     cc->total_input += len;
 

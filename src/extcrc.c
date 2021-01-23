@@ -16,6 +16,10 @@
 #define id_update           (mrb_intern_lit(mrb, "update"))
 #define id_initialize       (mrb_intern_lit(mrb, "initialize"))
 
+#define ID_crc              mrb_intern_lit(mrb, "crc")
+#define ID_downcase_ban     mrb_intern_lit(mrb, "downcase!")
+#define ID_new              mrb_intern_lit(mrb, "new")
+
 static void
 aux_define_class_method_with_env(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec, mrb_int nenv, const mrb_value *env)
 {
@@ -58,7 +62,7 @@ aux_conv_uint64(MRB, uint64_t n, int bits)
     int bytesize = bits_to_bytes(bits);
     int64_t m = (int64_t)n << (64 - bytesize * 8) >> (64 - bytesize * 8);
     if (m > MRB_INT_MAX || m < MRB_INT_MIN) {
-        return VALUE(mrbx_str_new_as_hexdigest(mrb, m, bytesize));
+        return mrb_obj_value(mrbx_str_new_as_hexdigest(mrb, m, bytesize));
     } else {
         return mrb_fixnum_value(n);
     }
@@ -146,7 +150,7 @@ search_ivar(MRB, VALUE obj, mrb_sym id)
             return Qnil;
         }
         obj = mrb_obj_value(c);
-    } 
+    }
 }
 
 static struct crcspec *
@@ -282,7 +286,7 @@ redirect_crc(MRB, VALUE self)
     if (mrb_get_args(mrb, "*&", &argv, &argc, &block) == 0) {
         return model;
     } else {
-        return mrb_funcall_with_block(mrb, model, SYMBOL("crc"), argc, argv, block);
+        return mrb_funcall_with_block(mrb, model, ID_crc, argc, argv, block);
     }
 }
 
@@ -290,7 +294,7 @@ static void
 attach_method(MRB, struct RClass *crc, VALUE model, const char *name)
 {
     VALUE namev = mrb_str_new_cstr(mrb, name);
-    FUNCALL(mrb, namev, "downcase!");
+    FUNCALL(mrb, namev, ID_downcase_ban);
 
     aux_define_class_method_with_env(mrb, crc, mrb_obj_to_sym(mrb, namev), redirect_crc, MRB_ARGS_ANY(), 1, &model);
 }
@@ -331,7 +335,7 @@ ext_s_define(MRB, VALUE self)
             struct RClass *klass = mrb_define_class_under(mrb, selfklass, name, selfklass);
             mrb_iv_set(mrb, mrb_obj_value(klass), id_crc_spec, mrb_obj_value(mod));
 
-            attach_method(mrb, mrb_class_ptr(self), VALUE(klass), name);
+            attach_method(mrb, mrb_class_ptr(self), mrb_obj_value(klass), name);
 
             return Qnil;
         }
@@ -388,7 +392,7 @@ ext_s_new_define(MRB, VALUE self)
 
     {
         struct RData *mod = new_crc_module(mrb, self, bitsize, polynomial, initcrc, xorout, refin, refout, appendzero);
-        VALUE crcmod = FUNCALL(mrb, mrb_obj_value(mrb->class_class), "new", self);
+        VALUE crcmod = FUNCALL(mrb, mrb_obj_value(mrb->class_class), ID_new, self);
         mrb_iv_set(mrb, crcmod, id_crc_spec, mrb_obj_value(mod));
 
         return crcmod;
@@ -519,9 +523,9 @@ ext_hexdigest(MRB, VALUE self)
 {
     struct context *cc = get_context(mrb, self);
     struct crcspec *s = cc->spec;
-    return VALUE(mrbx_str_new_as_hexdigest(mrb,
-                                           crcea_finish(&s->context, cc->state),
-                                           bits_to_bytes(s->model.design.bitsize)));
+    return mrb_obj_value(mrbx_str_new_as_hexdigest(mrb,
+                                                   crcea_finish(&s->context, cc->state),
+                                                   bits_to_bytes(s->model.design.bitsize)));
 }
 
 static VALUE
